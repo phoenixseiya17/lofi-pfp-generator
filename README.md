@@ -28,7 +28,7 @@ Every Yeti shows its trait list with a rarity label, just like a real NFT collec
 
 ## How it works
 
-The Yeti is **drawn procedurally in code** — a 64×64 pixel grid rendered with trait layers (fur palettes, face shapes, accessories, backgrounds). No images are fetched or generated: every combination is computed live in your browser, so the same traits always produce the same Yeti.
+The Yeti is a **hand-designed pixel sprite** on a 64×64 grid, traced from the reference pixel art of Lofi the Yeti: a round fluffy head, a big blue face, a white beard, wide fur shoulders and blue hands. Fur color is a palette swap on the same sprite; eyes, expressions and accessories are pixel overlays in the same style. No images are fetched or generated: every combination is computed live in your browser, so the same traits always produce the same Yeti.
 
 - **Zero dependencies, zero network requests.** Just static HTML, CSS and JavaScript.
 - **Works offline.** Open `index.html` in any modern browser, or serve the folder with any static server:

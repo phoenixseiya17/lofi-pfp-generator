@@ -45,9 +45,6 @@ const BACKGROUNDS = {
   neon:    { label: 'Neon City',     rarity: 'Rare' },
 };
 
-const FACE = { base: '#7FB8DC', shadow: '#4E8FB8', nose: '#3D7AA8' };
-const INK = '#1F2A37';
-const BLUSH = '#F28BB4';
 
 /* ---------------- state ---------------- */
 const state = {
@@ -87,7 +84,6 @@ function setPx(x, y, c) {
   x |= 0; y |= 0;
   if (x < 0 || x >= W || y < 0 || y >= H) return;
   grid[y][x] = c;
-  if (trackPaint) painted[y][x] = true;
 }
 function getPx(x, y) {
   if (x < 0 || x >= W || y < 0 || y >= H) return null;
@@ -203,18 +199,223 @@ function drawBackground(name, seed) {
 }
 
 /* ---------------- the Yeti ---------------- */
-/* Head-and-shoulders PORTRAIT, matching the AI-generated pixel previews:
-   a large head fills most of the frame, big blue face front and center,
-   fluffy fur framing the face, shoulders cut off at the bottom edge.
-   That composition is also the standard PFP format. The portrait removes
-   the arm problem entirely, so nothing can read as ape-like limbs.
-   The Yeti must read as a YETI, not a gorilla: white fluffy fur, a big
-   prominent blue face, snow on the fur, a friendly round face, bold
-   dark outline around the silhouette (as in the previews). */
-let bgSnap = null; // background snapshot (kept for reference)
-let currentFur = null;
-const painted = Array.from({ length: H }, () => new Array(W).fill(false));
-let trackPaint = false; // true while the Yeti/accessories are drawn
+/* Hand-designed pixel sprite traced from the AI-generated pixel previews
+   (pfp-previews/media-generation-lofi-pfp-pixel-*.png): a round fluffy head
+   fills most of the frame, a big clean blue oval face front and center,
+   modest blue ears peeking at the sides, a white beard with a V point,
+   wide fur shoulders cut off at the bottom edge, blue hands at the
+   bottom corners, bold black outline. Fur color is a palette swap on the
+   same map (W = fur light, w = fur base, s = fur shadow); the face
+   stays blue for every fur color, exactly as in the previews. */
+const SPRITE = [
+  "................................................................",
+  "................................................................",
+  "................................................................",
+  ".............................KK.................................",
+  ".............................KWKK...............................",
+  "........................KKKKKKwWWK..KKKK........................",
+  ".......................KwWWWWKKWWWKKWWWK........................",
+  ".......................KsswWWWWwWWsWWwKK........................",
+  "....................KKKWWWWWWWWWWWWWWWWWKKKK....................",
+  "...................KWWWWWWWWWWWWWWWWWWWWWWWWK...................",
+  "...................KswWWWWWWWWWWWWWWWWWWWWwsK...................",
+  "..................KWWWWWWWWWWWWWWWWWWWWWWWWWWK..................",
+  ".................KWWWWWWWWWWWWWWWWWWWWWWWWWWWWKK................",
+  "................KWWwWWWWWWWWWWWWWWWWWWWWWWWWwWWsK...............",
+  "...............KKswWWWWWWWWWWWWWWWWWWWWWWWWWWwssK...............",
+  "...............KsWWWWWWwWWWWWWWWWWWWWWWWwWWWWWWsK...............",
+  "...............KWWWWWsWWWwWwWWWWKWWWwWwWWWwWWWWWK...............",
+  "..............KWWWWWWWwwKKKKKKKKFKKKKKKKwwwWWWWWWK..............",
+  ".............KWwWWWWWwssssKFFFFFFFFFFFKssswWWWWWwWK.............",
+  "..............KKWWWWWsssKKFFFFFFFFFFFFFKKsswWWWWKKK.............",
+  "..............KWwWWWwssKFFFFFFFFFFFFFFFFFKssWWWwWK..............",
+  ".............KwwWKKKKKKFFFFFFFFFFFFFFFFFFFKKKKKWwwK.............",
+  ".............KKKWKwKKKFFFFFFFFFFFFFFFFFFFFFKKwKWKKK.............",
+  "............KwwssKKKKFFFFFFFFFFFFFFFFFFFFFFFKKKwswwK............",
+  "...........KFFFsswKKKFFFFFFFFFFFFFFFFFFFFFFFKKwwssFFK...........",
+  "...........KFKfKWWsKFFFFFFFFFFFFFFFFFFFFFFFFKsWWsfKFK...........",
+  "...........KFffFLWWKFFFFFFFFFFFFFFFFFFFFFFFFKWWWLffFK...........",
+  "...........KFffLLWWKFFFFFFFFFFFFFFFFFFFFFFFFKWWsLffFK...........",
+  "...........KFfKLLWWsKFFFFFFFFFFFFFFFFFFFFFFFKWWsLKfFK...........",
+  "...........KfFffLWWKFFFFFFFFFFFFFFFFFFFFFFFFFKWWffFfK...........",
+  "...........KfffFLWWwKFFFFFFFFFFFFFFFFFFFFFFFKWWWLfffK...........",
+  "............KffFWWWWKFFFFFFFFFFFFFFFFFFFFFFFKWWWWfFK............",
+  ".............KLWWWWWKFFFFFFFFFFFFFFFFFFFFFFFKWWWWWK.............",
+  ".............KWWWWWWKFFFFFFFFFFFFFFFFFFFFFFFKWWWWWK.............",
+  "............KWWsWWWWWKKFFFFFFFFFFFFFFFFFFKFKWWWWWWWK............",
+  "............KwsWWWWWsKFFFFFFFFFFFFFFFFFFFFKKWWWWWswWK...........",
+  "...........KWwWWWWWWssKFFFFFFFFFFFFFFFFFFFFKWWWWWWwWK...........",
+  "............KKWsWWWWssKFFFFFFLLLLLLFFFFFFFKKWWWWsWKK............",
+  ".............KwwWwWWsssKLLLLLFFFFFFLLLLLFKsKWWsWwwK.............",
+  ".............KwwWWWWswssKKFFFFFFFFFFFFFKKswKWWWWwwK.............",
+  ".............KKwsWWWWwKsssKKFFFFFFFFFKKssKssWWWssKK.............",
+  "............KwKwsWWWWWKsssssKKKKFKKKKssssKWWWWWswKwK............",
+  "..........KKssKwKwsWWWssKsssssssKsssssssswWWWswKwKssKK..........",
+  ".........KsWsssKKwsWWWWwwKssssssssssssKKsWWWWwsKKsssWsK.........",
+  "........KWwsWWssKwsWWWWWswKKssssssssKKwsWWWWWswKssWWwwWK........",
+  "........KsWWWWssswKwwWWWWWsswwKssssswsWWWWWWsKwsssWWWWwK........",
+  "........KWWWWWWWssKwKWWWWWWWsswKswssWWWWWWWswKsssWWWWWWK........",
+  ".......KWWWWWWWsssssKssWWsWWWWWssWWWWWwWWwwswssswWWWWWWWK.......",
+  ".......KWsWWWWWWwsssswKwWswWsWWwsWWwWWsWwKwKssswWWWWWWWWWK......",
+  ".......KsWWWWWWWWWsssKsKsssWssWWWWssWsssKsKsssWWWWWWWWWsWK......",
+  "......KKWWWWWWWssWssssKssssssssWWssssssssKssssWwsWWWWWWWsK......",
+  "......KWWWWWWWWWsssssssssKKsssswWssssKKsssssssssWWWWWWWWWK......",
+  "......KWWWWWWWWWWWssWWsssssssssssssssssssssWsKWWWWWWWWWWWKK.....",
+  ".....KWWWWWWWWWWWWWsWWssssssssssssssssssssWWKWWWWWWWWWWWWWK.....",
+  ".....KwWsWWWWWWsWsWsWWWsWWsssssKKsssssWWsWWWKWsWWWWWWWWsWwK.....",
+  ".....KwWKKKKfKKfwKsKKWWWsWssssssssssssWsWWWKKsWwKKKfKKKKKwK.....",
+  ".....KwsKLLfFKLKFKsssKWWWwsssssssssssswWWWWssssKFLKFKLLLKwK.....",
+  ".....KwsKFLKFFKFFKssssKWWWWWsWssssWWWWWWWKsssssKFFKFFKfLKsK.....",
+  ".....KssKKLKFFKFFKsssssKWWWWsWWssWWWWWWWKssssssKFFKFFKKLKsK.....",
+  "......KwfffKFFKFFKsKsssKWWWWWWWwsWWWWWWWKsssKssKFFKFFKfKLK......",
+  "......KsKfFKFFKKFKsKKssKsWWWWWWWWWWWWwWsKssKKssKFFKFFKffFK......",
+  "......KKffFKFFFFfKssKKKswWWWWWWWWWWWwwwwsKKssssKKFFFKFfffK......",
+  "........KfffKFFfKKssKssswwssssWWwwsssWsssssssssffFFKfffK........",
+  ".........KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK........"
+];
+
+const FACE = { base: '#5E9BD6', dark: '#3F74AC', light: '#A8CBE8' };
+const INK = '#14181D';
+const BLUSH = '#F28BB4';
+const CROWN = { gold: '#FFC93E', deep: '#D18A1B', gem: '#7B4DFF' };
+const PHONE = { dark: '#232B3A', mid: '#4A5E85', light: '#7FE3FF' };
+const SCARF = { base: '#2EC4B6', dark: '#1D8A80' };
+const BEANIE = { base: '#E84A4A', dark: '#7A1F1F', stripe: '#FFD76A' };
+const STAR = '#FFD76A';
+
+function paintSprite(s) {
+  const fur = FUR[s.fur];
+  const col = { W: fur.light, w: fur.base, s: fur.shadow, F: FACE.base, f: FACE.dark, L: FACE.light, K: INK, P: BLUSH };
+  for (let y = 0; y < H; y++) {
+    const row = SPRITE[y];
+    for (let x = 0; x < W; x++) {
+      const c = col[row[x]];
+      if (c) setPx(x, y, c);
+    }
+  }
+}
+
+function drawEyes(s) {
+  const style = s.eyes;
+  const centers = [[26, 27], [38, 27]];
+  if (style === 'sunglasses') {
+    // big black shades spanning the face, as in the classic preview
+    for (const [lx, rx] of [[19, 31], [33, 45]]) {
+      for (let y = 23; y <= 30; y++) {
+        for (let x = lx; x <= rx; x++) {
+          if (x === lx || x === rx) { if (y === 23 || y === 30) continue; }
+          if (y === 30 && (x === lx || x === rx)) continue;
+          setPx(x, y, '#141414');
+        }
+      }
+    }
+    setPx(32, 25, '#141414'); setPx(32, 26, '#141414');
+    for (const gx of [22, 36]) {
+      setPx(gx, 25, '#FFFFFF'); setPx(gx + 1, 25, '#FFFFFF');
+      setPx(gx, 26, '#FFFFFF'); setPx(gx + 2, 27, '#FFFFFF');
+    }
+    return;
+  }
+  if (style === 'star') {
+    for (const [cx, cy] of centers) {
+      for (const [dx, dy] of [[0,-2],[-1,-1],[0,-1],[1,-1],[-2,0],[-1,0],[0,0],[1,0],[2,0],[-1,1],[1,1],[0,2]])
+        setPx(cx + dx, cy + dy, STAR);
+      setPx(cx - 1, cy - 2, '#FFFFFF');
+    }
+    return;
+  }
+  if (style === 'closed') {
+    for (const [cx, cy] of centers) {
+      for (const [dx, dy] of [[-2,-1],[-1,0],[0,0],[1,0],[2,-1]]) setPx(cx + dx, cy + dy, INK);
+    }
+    return;
+  }
+  // normal (half-closed when sleepy)
+  for (const [cx, cy] of centers) {
+    if (s.expression === 'sleepy') {
+      for (let x = cx - 2; x <= cx + 2; x++) setPx(x, cy, INK);
+      setPx(cx, cy + 1, INK);
+    } else {
+      for (let y = 24; y <= 29; y++) {
+        for (let x = cx - 2; x <= cx + 2; x++) {
+          if ((x === cx - 2 || x === cx + 2) && (y === 24 || y === 29)) continue;
+          setPx(x, y, INK);
+        }
+      }
+      setPx(cx - 1, 25, '#FFFFFF'); setPx(cx, 25, '#FFFFFF'); setPx(cx - 1, 26, '#FFFFFF');
+    }
+  }
+}
+
+function drawBrows(s) {
+  const e = s.expression;
+  const arcs = {
+    happy:   [[23,24],[24,23],[25,22],[26,22],[27,23],[28,24],[36,24],[37,23],[38,22],[39,22],[40,23],[41,24]],
+    sleepy:  [[23,24],[24,24],[25,24],[26,24],[27,24],[28,24],[36,24],[37,24],[38,24],[39,24],[40,24],[41,24]],
+    cool:    [[22,23],[23,24],[24,24],[25,25],[26,25],[27,26],[28,26],[36,26],[37,25],[38,25],[39,24],[40,24],[41,23]],
+    excited: [[23,23],[24,22],[25,21],[26,21],[27,22],[28,23],[36,23],[37,22],[38,21],[39,21],[40,22],[41,23]],
+  }[e] || [];
+  for (const [x, y] of arcs) setPx(x, y, INK);
+}
+
+function drawMouth(s) {
+  const e = s.expression;
+  if (e === 'happy') {
+    for (const [x, y] of [[26,38],[27,39],[28,39],[29,40],[30,40],[31,40],[32,40],[33,40],[34,40],[35,39],[36,39],[37,39],[38,38]]) setPx(x, y, INK);
+  } else if (e === 'cool') {
+    line(29, 38, 36, 38, INK);
+    setPx(37, 37, INK); setPx(38, 36, INK);
+  } else if (e === 'sleepy') {
+    rect(29, 39, 7, 1, INK);
+  } else if (e === 'excited') {
+    rect(27, 37, 11, 5, INK);
+    for (let x = 28; x <= 36; x++) setPx(x, 37, '#FFFFFF');
+    for (let x = 29; x <= 35; x++) { setPx(x, 40, BLUSH); setPx(x, 41, BLUSH); }
+  }
+}
+
+/* ---------------- accessories ---------------- */
+/* Positioned for the portrait sprite: crown on top of the head (as in the
+   gold preview), headphones resting on the chest (as in the blue preview),
+   beanie over the top of the head, scarf wrapped at the shoulders. */
+function drawAccessory(s) {
+  const a = s.accessory;
+  if (a === 'crown') {
+    for (const [cx, tip] of [[27, 1], [32, 0], [37, 1]]) spike(cx, tip, 8, 3, INK);
+    for (const [cx, tip] of [[27, 2], [32, 1], [37, 2]]) spike(cx, tip, 8, 2, CROWN.gold);
+    rect(24, 7, 17, 3, CROWN.gold);
+    for (const gx of [28, 32, 36]) setPx(gx, 8, CROWN.gem);
+    rect(24, 10, 17, 1, CROWN.deep);
+  } else if (a === 'headphones') {
+    // rounded cups hanging on the chest
+    for (const [cx0, cy0] of [[17, 48], [40, 48]]) {
+      for (let y = cy0; y <= cy0 + 8; y++) {
+        for (let x = cx0; x <= cx0 + 7; x++) {
+          if ((x === cx0 || x === cx0 + 7) && (y === cy0 || y === cy0 + 8)) continue;
+          setPx(x, y, PHONE.dark);
+        }
+      }
+      for (let y = cy0 + 2; y <= cy0 + 6; y++)
+        for (let x = cx0 + 2; x <= cx0 + 5; x++) setPx(x, y, PHONE.mid);
+      setPx(cx0 + 3, cy0 + 4, PHONE.light); setPx(cx0 + 4, cy0 + 4, PHONE.light);
+      setPx(cx0 + 3, cy0 - 1, PHONE.dark); setPx(cx0 + 3, cy0 - 2, PHONE.dark);
+    }
+  } else if (a === 'beanie') {
+    for (let y = 2; y <= 7; y++) {
+      const half = 8 + (y - 2) * 2;
+      for (let x = 32 - half; x <= 32 + half; x++) setPx(x, y, BEANIE.base);
+    }
+    rect(15, 8, 34, 3, BEANIE.dark);
+    rect(15, 8, 34, 1, BEANIE.base);
+    rect(15, 9, 34, 1, BEANIE.stripe);
+    for (const [dx, dy] of [[0,-1],[-1,0],[0,0],[1,0],[0,1]]) setPx(32 + dx, 1 + dy, '#FFFFFF');
+  } else if (a === 'scarf') {
+    rect(10, 51, 44, 4, SCARF.base);
+    rect(10, 54, 44, 1, SCARF.dark);
+    rect(40, 55, 6, 8, SCARF.base);
+    rect(40, 62, 6, 1, SCARF.dark);
+  }
+}
 
 function spike(x, tipY, baseY, halfW, c) {
   for (let y = tipY; y <= baseY; y++) {
@@ -224,241 +425,16 @@ function spike(x, tipY, baseY, halfW, c) {
   }
 }
 
-function drawTuft(fur, seed) {
-  // spiky fur tuft across the top of the head
-  const tips = [[22, 3], [27, 1], [32, 2], [37, 1], [42, 3]];
-  for (const [x, tipY] of tips) spike(x, tipY, 9, 3, fur.base);
-}
-
-function outlineFur() {
-  // Bold dark outline around the fur silhouette, as in the previews:
-  // any fur pixel whose neighbour was never painted by the Yeti is on
-  // the outer edge and becomes INK. (A plain colour comparison would
-  // misfire wherever fur and background share a colour, e.g. white
-  // fur light on the arctic snow hill.)
-  const fur = currentFur;
-  const isFur = (c) => c === fur.base || c === fur.shadow || c === fur.deep || c === fur.light;
-  const marks = [];
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      if (!isFur(grid[y][x])) continue;
-      const nbs = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
-      for (const [nx, ny] of nbs) {
-        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
-        if (!painted[ny][nx]) { marks.push([x, y]); break; }
-      }
-    }
-  }
-  for (const [x, y] of marks) setPx(x, y, INK);
-}
-
-function drawYeti(s, seed) {
-  const fur = FUR[s.fur];
-  const rnd = mulberry32(seed ^ 0x5EED);
-  currentFur = fur;
-
-  // ---- shoulders: wide fur mass, cut off at the bottom edge ----
-  rect(4, 54, 56, 10, fur.base);
-  ellipse(32, 54, 26, 7, fur.base, true, seed + 21);
-  ellipse(32, 58, 14, 6, fur.light, false, 0); // chest highlight
-  ellipse(32, 53, 9, 4, fur.shadow, false, 0); // small neck shadow under the beard
-
-  // ---- head fur: big blob filling most of the frame ----
-  ellipse(32, 27, 17, 23, fur.base, true, seed + 2);
-  // fur shadow crescent under the chin
-  ellipse(32, 43, 11, 6, fur.shadow, false, 0);
-
-  // ---- spiky tuft on top ----
-  drawTuft(fur, seed);
-
-  // ---- ears (fur rim + blue inner) ----
-  circle(11, 30, 5, fur.base);
-  circle(11, 30, 4, FACE.base);
-  circle(11, 30, 2, FACE.shadow);
-  circle(53, 30, 5, fur.base);
-  circle(53, 30, 4, FACE.base);
-  circle(53, 30, 2, FACE.shadow);
-
-  // ---- face: big blue oval, soft shadow rim, shadow crescent at bottom ----
-  ellipse(32, 30, 12, 12, FACE.shadow, false, 0);
-  ellipse(32, 30, 11, 11, FACE.base, false, 0);
-  ellipse(32, 36, 9, 5, FACE.shadow, false, 0);
-  ellipse(32, 29, 10, 9, FACE.base, false, 0);
-
-  drawEyes(s, seed);
-  drawBrows(s);
-  drawNoseMouth(s);
-  drawBlush(s);
-
-  // ---- beard fringe: jagged fur hanging under the chin ----
-  for (let x = 22; x <= 42; x++) {
-    const len = 2 + Math.floor(hash2(x, 7, seed) * 5);
-    for (let y = 42; y < 42 + len; y++) setPx(x, y, fur.base);
-    setPx(x, 42 + len, fur.shadow);
-  }
-
-  // ---- hands peeking out at the bottom corners ----
-  ellipse(9, 61, 5, 4, FACE.base, false, 0);
-  ellipse(55, 61, 5, 4, FACE.base, false, 0);
-  ellipse(9, 62, 4, 2, FACE.shadow, false, 0);
-  ellipse(55, 62, 4, 2, FACE.shadow, false, 0);
-
-  // snow speckles on the fur + tiny icicles hanging from the beard
-  let placed = 0;
-  while (placed < 26) {
-    const x = 14 + Math.floor(rnd() * 36);
-    const y = 4 + Math.floor(rnd() * 54);
-    const c = getPx(x, y);
-    if (c === fur.base || c === fur.shadow) { setPx(x, y, '#FFFFFF'); placed++; }
-  }
-  setPx(26, 48, '#DFF2FB'); setPx(26, 49, '#BFE3F2');
-  setPx(38, 48, '#DFF2FB'); setPx(38, 49, '#BFE3F2');
-
-  // bold outline around the whole silhouette
-  outlineFur();
-}
-
-function drawEyes(s, seed) {
-  const style = s.eyes;
-  const centers = [[26, 28], [38, 28]];
-  if (style === 'sunglasses') {
-    // big black shades spanning the face, as in the classic preview
-    rect(20, 25, 11, 6, '#141414');
-    rect(33, 25, 11, 6, '#141414');
-    rect(30, 26, 3, 2, '#141414');
-    setPx(22, 26, '#FFFFFF'); setPx(36, 26, '#FFFFFF');
-    return;
-  }
-  if (style === 'star') {
-    for (const [cx, cy] of centers) {
-      setPx(cx, cy - 2, '#FFD76A'); setPx(cx - 1, cy - 1, '#FFD76A'); setPx(cx, cy - 1, '#FFD76A'); setPx(cx + 1, cy - 1, '#FFD76A');
-      setPx(cx - 2, cy, '#FFD76A'); setPx(cx - 1, cy, '#FFD76A'); setPx(cx, cy, '#FFD76A'); setPx(cx + 1, cy, '#FFD76A'); setPx(cx + 2, cy, '#FFD76A');
-      setPx(cx - 1, cy + 1, '#FFD76A'); setPx(cx + 1, cy + 1, '#FFD76A'); setPx(cx, cy + 2, '#FFD76A');
-      setPx(cx - 1, cy - 2, '#FFFFFF');
-    }
-    return;
-  }
-  if (style === 'closed') {
-    for (const [cx, cy] of centers) {
-      setPx(cx - 2, cy - 1, INK); setPx(cx - 1, cy, INK); setPx(cx, cy, INK); setPx(cx + 1, cy, INK); setPx(cx + 2, cy - 1, INK);
-    }
-    return;
-  }
-  // normal (or half-closed when sleepy)
-  const half = s.expression === 'sleepy';
-  for (const [cx, cy] of centers) {
-    rect(cx - 2, cy - 1, 4, half ? 2 : 3, '#FFFFFF');
-    rect(cx - 1, cy, 2, half ? 1 : 2, INK);
-  }
-}
-
-function drawBrows(s) {
-  const e = s.expression;
-  if (e === 'happy') {
-    setPx(23, 24, INK); setPx(24, 23, INK); setPx(25, 23, INK); setPx(26, 24, INK);
-    setPx(38, 24, INK); setPx(39, 23, INK); setPx(40, 23, INK); setPx(41, 24, INK);
-  } else if (e === 'cool') {
-    line(22, 23, 28, 25, INK); // left brow angled down toward center
-    line(36, 25, 42, 23, INK); // right brow raised
-  } else if (e === 'sleepy') {
-    rect(22, 24, 6, 1, INK);
-    rect(36, 24, 6, 1, INK);
-  } else if (e === 'excited') {
-    setPx(23, 22, INK); setPx(24, 21, INK); setPx(25, 21, INK); setPx(26, 22, INK);
-    setPx(38, 22, INK); setPx(39, 21, INK); setPx(40, 21, INK); setPx(41, 22, INK);
-  }
-}
-
-function drawNoseMouth(s) {
-  const e = s.expression;
-  // nose with two nostrils
-  ellipse(32, 34, 3, 2, FACE.nose, false, 0);
-  setPx(30, 34, INK); setPx(34, 34, INK);
-  if (e === 'happy') {
-    rect(29, 37, 7, 1, INK);
-    rect(28, 38, 9, 1, INK);
-    rect(29, 39, 7, 1, INK);
-    rect(31, 40, 3, 1, INK);
-    rect(30, 39, 5, 1, '#F28BB4'); // tongue
-  } else if (e === 'cool') {
-    line(29, 38, 36, 38, INK);
-    setPx(36, 37, INK); setPx(37, 36, INK);
-  } else if (e === 'sleepy') {
-    rect(30, 38, 5, 1, INK);
-  } else if (e === 'excited') {
-    rect(28, 36, 9, 1, '#FFFFFF'); // teeth
-    rect(27, 37, 11, 1, INK);
-    rect(27, 38, 11, 2, INK);
-    rect(28, 40, 9, 1, INK);
-    rect(30, 39, 5, 2, '#F28BB4'); // tongue
-  }
-}
-
-function drawBlush(s) {
-  if (s.expression !== 'happy' && s.expression !== 'excited') return;
-  rect(21, 33, 3, 2, BLUSH);
-  rect(40, 33, 3, 2, BLUSH);
-}
-
-/* ---------------- accessories ---------------- */
-/* All positioned for the portrait geometry: crown on top of the head,
-   headphones resting on the chest (as in the blue preview), beanie
-   over the top of the head, scarf wrapped at the shoulders. */
-function drawAccessory(s) {
-  const a = s.accessory;
-  if (a === 'crown') {
-    // bright spikes with a dark outline, sitting on top of the head
-    spike(26, 0, 4, 3, INK); spike(32, -1, 4, 3, INK); spike(38, 0, 4, 3, INK);
-    spike(26, 1, 4, 2, '#FFE9A8'); spike(32, 0, 4, 2, '#FFE9A8'); spike(38, 1, 4, 2, '#FFE9A8');
-    rect(24, 4, 17, 3, '#F2A92E');
-    setPx(28, 5, '#E84A4A'); setPx(32, 5, '#E84A4A'); setPx(36, 5, '#E84A4A');
-    rect(24, 7, 17, 1, '#8A5A00'); // dark outline under the band
-  } else if (a === 'headphones') {
-    // cups resting on the chest, band hidden behind the beard
-    rect(17, 52, 6, 9, '#232323');
-    rect(41, 52, 6, 9, '#232323');
-    rect(18, 54, 4, 5, '#3A3A3A');
-    rect(42, 54, 4, 5, '#3A3A3A');
-    setPx(19, 56, '#7FE3FF'); setPx(20, 56, '#7FE3FF');
-    setPx(43, 56, '#7FE3FF'); setPx(44, 56, '#7FE3FF');
-    // short strap stubs disappearing behind the beard
-    setPx(19, 51, '#232323'); setPx(20, 50, '#232323');
-    setPx(44, 51, '#232323'); setPx(43, 50, '#232323');
-  } else if (a === 'beanie') {
-    // dark rim behind, red cap on top, covering the tuft
-    for (let y = 2; y <= 7; y++) {
-      const half = 11 + (y - 2);
-      for (let x = 32 - half; x <= 32 + half; x++) setPx(x, y, '#7A1F1F');
-    }
-    for (let y = 2; y <= 7; y++) {
-      const half = 10 + (y - 2);
-      for (let x = 32 - half; x <= 32 + half; x++) setPx(x, y, '#E84A4A');
-    }
-    rect(14, 8, 36, 3, '#7A1F1F'); // brim rim
-    rect(15, 8, 34, 3, '#B83232'); // brim
-    rect(15, 9, 34, 1, '#FFD76A'); // brim stripe
-    circle(32, 1, 2, '#FFFFFF'); // pompom
-  } else if (a === 'scarf') {
-    // wraps the shoulders, tail hangs down the chest
-    rect(12, 52, 40, 4, '#2EC4B6');
-    rect(12, 54, 40, 1, '#1D8A80');
-    rect(40, 56, 6, 7, '#2EC4B6'); // hanging tail
-    rect(40, 62, 6, 1, '#1D8A80');
-    setPx(41, 63, '#2EC4B6'); setPx(43, 63, '#2EC4B6'); setPx(45, 63, '#2EC4B6');
-  }
-}
-
 /* ---------------- render ---------------- */
 function render(s) {
   newGrid();
-  for (let y = 0; y < H; y++) painted[y].fill(false);
   const seed = seedFromTraits(s);
   drawBackground(s.background, seed);
-  bgSnap = grid.map(row => row.slice()); // snapshot for reference
-  trackPaint = true; // from here on, setPx records painted pixels
-  drawYeti(s, seed);
+  paintSprite(s);
+  drawEyes(s);
+  drawBrows(s);
+  drawMouth(s);
   drawAccessory(s);
-  trackPaint = false;
   blitToCanvas();
 }
 
