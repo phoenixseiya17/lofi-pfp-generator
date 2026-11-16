@@ -87,6 +87,7 @@ function setPx(x, y, c) {
   x |= 0; y |= 0;
   if (x < 0 || x >= W || y < 0 || y >= H) return;
   grid[y][x] = c;
+  if (trackPaint) painted[y][x] = true;
 }
 function getPx(x, y) {
   if (x < 0 || x >= W || y < 0 || y >= H) return null;
@@ -202,72 +203,130 @@ function drawBackground(name, seed) {
 }
 
 /* ---------------- the Yeti ---------------- */
-/* Full-body portrait with a clear silhouette: a distinct round head
-   (big blue face) separated from the body by a visible neck break,
-   a defined torso with belly, short arms at the sides, and feet at
-   the bottom. The Yeti must read as a YETI, not a gorilla: white
-   fluffy fur, a big prominent blue face, snow on the fur, a friendly
-   round face, short arms, upright posture. */
+/* Head-and-shoulders PORTRAIT, matching the AI-generated pixel previews:
+   a large head fills most of the frame, big blue face front and center,
+   fluffy fur framing the face, shoulders cut off at the bottom edge.
+   That composition is also the standard PFP format. The portrait removes
+   the arm problem entirely, so nothing can read as ape-like limbs.
+   The Yeti must read as a YETI, not a gorilla: white fluffy fur, a big
+   prominent blue face, snow on the fur, a friendly round face, bold
+   dark outline around the silhouette (as in the previews). */
+let bgSnap = null; // background snapshot (kept for reference)
+let currentFur = null;
+const painted = Array.from({ length: H }, () => new Array(W).fill(false));
+let trackPaint = false; // true while the Yeti/accessories are drawn
+
+function spike(x, tipY, baseY, halfW, c) {
+  for (let y = tipY; y <= baseY; y++) {
+    const t = (y - tipY) / Math.max(1, baseY - tipY);
+    const hw = Math.round(halfW * t);
+    for (let xx = x - hw; xx <= x + hw; xx++) setPx(xx, y, c);
+  }
+}
+
+function drawTuft(fur, seed) {
+  // spiky fur tuft across the top of the head
+  const tips = [[22, 3], [27, 1], [32, 2], [37, 1], [42, 3]];
+  for (const [x, tipY] of tips) spike(x, tipY, 9, 3, fur.base);
+}
+
+function outlineFur() {
+  // Bold dark outline around the fur silhouette, as in the previews:
+  // any fur pixel whose neighbour was never painted by the Yeti is on
+  // the outer edge and becomes INK. (A plain colour comparison would
+  // misfire wherever fur and background share a colour, e.g. white
+  // fur light on the arctic snow hill.)
+  const fur = currentFur;
+  const isFur = (c) => c === fur.base || c === fur.shadow || c === fur.deep || c === fur.light;
+  const marks = [];
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (!isFur(grid[y][x])) continue;
+      const nbs = [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]];
+      for (const [nx, ny] of nbs) {
+        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+        if (!painted[ny][nx]) { marks.push([x, y]); break; }
+      }
+    }
+  }
+  for (const [x, y] of marks) setPx(x, y, INK);
+}
+
 function drawYeti(s, seed) {
   const fur = FUR[s.fur];
   const rnd = mulberry32(seed ^ 0x5EED);
-  // body / torso
-  ellipse(32, 50, 15, 11, fur.base, true, seed + 1);
-  ellipse(32, 52, 9, 7, fur.light, false, 0); // belly highlight
-  // arms: short, at the sides, never ape-like
-  ellipse(15, 47, 3, 7, fur.base, true, seed + 11);
-  ellipse(49, 47, 3, 7, fur.base, true, seed + 12);
-  circle(15, 55, 3, FACE.base); // hands
-  circle(49, 55, 3, FACE.base);
-  // feet peeking out under the body
-  ellipse(25, 62, 4, 2, FACE.base);
-  ellipse(39, 62, 4, 2, FACE.base);
-  // neck: narrow shadow connector between head and body
-  rect(29, 35, 6, 4, fur.shadow);
-  // ears (fur rim + blue inner)
-  circle(17, 22, 3, fur.base);
-  circle(17, 22, 2, FACE.base);
-  circle(47, 22, 3, fur.base);
-  circle(47, 22, 2, FACE.base);
-  // head with fluffy edge
-  ellipse(32, 23, 14, 12, fur.base, true, seed + 2);
-  // fur shadow crescent at bottom of head
-  ellipse(32, 31, 12, 7, fur.shadow, false, 0);
-  // hair tuft on top
-  setPx(28, 10, fur.deep); setPx(29, 9, fur.deep); setPx(30, 8, fur.deep); setPx(31, 8, fur.deep);
-  setPx(32, 7, fur.deep); setPx(33, 8, fur.deep); setPx(34, 8, fur.deep); setPx(35, 9, fur.deep); setPx(36, 10, fur.deep);
-  setPx(30, 9, fur.base); setPx(31, 9, fur.base); setPx(32, 8, fur.base); setPx(33, 9, fur.base); setPx(34, 9, fur.base);
-  // face — big blue oval with a soft shadow crescent at the bottom
-  ellipse(32, 25, 10, 9, FACE.base, false, 0);
-  ellipse(32, 30, 8, 4, FACE.shadow, false, 0);
-  ellipse(32, 24, 9, 7, FACE.base, false, 0);
+  currentFur = fur;
+
+  // ---- shoulders: wide fur mass, cut off at the bottom edge ----
+  rect(4, 54, 56, 10, fur.base);
+  ellipse(32, 54, 26, 7, fur.base, true, seed + 21);
+  ellipse(32, 58, 14, 6, fur.light, false, 0); // chest highlight
+  ellipse(32, 53, 9, 4, fur.shadow, false, 0); // small neck shadow under the beard
+
+  // ---- head fur: big blob filling most of the frame ----
+  ellipse(32, 27, 17, 23, fur.base, true, seed + 2);
+  // fur shadow crescent under the chin
+  ellipse(32, 43, 11, 6, fur.shadow, false, 0);
+
+  // ---- spiky tuft on top ----
+  drawTuft(fur, seed);
+
+  // ---- ears (fur rim + blue inner) ----
+  circle(11, 30, 5, fur.base);
+  circle(11, 30, 4, FACE.base);
+  circle(11, 30, 2, FACE.shadow);
+  circle(53, 30, 5, fur.base);
+  circle(53, 30, 4, FACE.base);
+  circle(53, 30, 2, FACE.shadow);
+
+  // ---- face: big blue oval, soft shadow rim, shadow crescent at bottom ----
+  ellipse(32, 30, 12, 12, FACE.shadow, false, 0);
+  ellipse(32, 30, 11, 11, FACE.base, false, 0);
+  ellipse(32, 36, 9, 5, FACE.shadow, false, 0);
+  ellipse(32, 29, 10, 9, FACE.base, false, 0);
 
   drawEyes(s, seed);
   drawBrows(s);
   drawNoseMouth(s);
   drawBlush(s);
 
-  // snow speckles on the fur + tiny icicles hanging from the chin
+  // ---- beard fringe: jagged fur hanging under the chin ----
+  for (let x = 22; x <= 42; x++) {
+    const len = 2 + Math.floor(hash2(x, 7, seed) * 5);
+    for (let y = 42; y < 42 + len; y++) setPx(x, y, fur.base);
+    setPx(x, 42 + len, fur.shadow);
+  }
+
+  // ---- hands peeking out at the bottom corners ----
+  ellipse(9, 61, 5, 4, FACE.base, false, 0);
+  ellipse(55, 61, 5, 4, FACE.base, false, 0);
+  ellipse(9, 62, 4, 2, FACE.shadow, false, 0);
+  ellipse(55, 62, 4, 2, FACE.shadow, false, 0);
+
+  // snow speckles on the fur + tiny icicles hanging from the beard
   let placed = 0;
   while (placed < 26) {
     const x = 14 + Math.floor(rnd() * 36);
-    const y = 8 + Math.floor(rnd() * 50);
+    const y = 4 + Math.floor(rnd() * 54);
     const c = getPx(x, y);
     if (c === fur.base || c === fur.shadow) { setPx(x, y, '#FFFFFF'); placed++; }
   }
-  // icicles hanging from the lower head edge
-  setPx(27, 34, '#DFF2FB'); setPx(27, 35, '#BFE3F2');
-  setPx(37, 34, '#DFF2FB'); setPx(37, 35, '#BFE3F2');
+  setPx(26, 48, '#DFF2FB'); setPx(26, 49, '#BFE3F2');
+  setPx(38, 48, '#DFF2FB'); setPx(38, 49, '#BFE3F2');
+
+  // bold outline around the whole silhouette
+  outlineFur();
 }
 
 function drawEyes(s, seed) {
   const style = s.eyes;
-  const centers = [[26, 23], [38, 23]];
+  const centers = [[26, 28], [38, 28]];
   if (style === 'sunglasses') {
-    rect(20, 20, 10, 5, '#141414');
-    rect(34, 20, 10, 5, '#141414');
-    rect(30, 21, 4, 2, '#141414');
-    setPx(22, 21, '#FFFFFF'); setPx(36, 21, '#FFFFFF');
+    // big black shades spanning the face, as in the classic preview
+    rect(20, 25, 11, 6, '#141414');
+    rect(33, 25, 11, 6, '#141414');
+    rect(30, 26, 3, 2, '#141414');
+    setPx(22, 26, '#FFFFFF'); setPx(36, 26, '#FFFFFF');
     return;
   }
   if (style === 'star') {
@@ -296,100 +355,110 @@ function drawEyes(s, seed) {
 function drawBrows(s) {
   const e = s.expression;
   if (e === 'happy') {
-    setPx(23, 19, INK); setPx(24, 18, INK); setPx(25, 18, INK); setPx(26, 19, INK);
-    setPx(38, 19, INK); setPx(39, 18, INK); setPx(40, 18, INK); setPx(41, 19, INK);
+    setPx(23, 24, INK); setPx(24, 23, INK); setPx(25, 23, INK); setPx(26, 24, INK);
+    setPx(38, 24, INK); setPx(39, 23, INK); setPx(40, 23, INK); setPx(41, 24, INK);
   } else if (e === 'cool') {
-    line(22, 18, 28, 20, INK); // left brow angled down toward center
-    line(36, 20, 42, 18, INK); // right brow raised
+    line(22, 23, 28, 25, INK); // left brow angled down toward center
+    line(36, 25, 42, 23, INK); // right brow raised
   } else if (e === 'sleepy') {
-    rect(22, 19, 6, 1, INK);
-    rect(36, 19, 6, 1, INK);
+    rect(22, 24, 6, 1, INK);
+    rect(36, 24, 6, 1, INK);
   } else if (e === 'excited') {
-    setPx(23, 17, INK); setPx(24, 16, INK); setPx(25, 16, INK); setPx(26, 17, INK);
-    setPx(38, 17, INK); setPx(39, 16, INK); setPx(40, 16, INK); setPx(41, 17, INK);
+    setPx(23, 22, INK); setPx(24, 21, INK); setPx(25, 21, INK); setPx(26, 22, INK);
+    setPx(38, 22, INK); setPx(39, 21, INK); setPx(40, 21, INK); setPx(41, 22, INK);
   }
 }
 
 function drawNoseMouth(s) {
   const e = s.expression;
-  // nose
-  ellipse(32, 28, 2, 1, FACE.nose, false, 0);
+  // nose with two nostrils
+  ellipse(32, 34, 3, 2, FACE.nose, false, 0);
+  setPx(30, 34, INK); setPx(34, 34, INK);
   if (e === 'happy') {
-    rect(29, 31, 7, 1, INK);
-    rect(28, 32, 9, 1, INK);
-    rect(29, 33, 7, 1, INK);
-    rect(31, 34, 3, 1, INK);
-    rect(30, 33, 5, 1, '#F28BB4'); // tongue
+    rect(29, 37, 7, 1, INK);
+    rect(28, 38, 9, 1, INK);
+    rect(29, 39, 7, 1, INK);
+    rect(31, 40, 3, 1, INK);
+    rect(30, 39, 5, 1, '#F28BB4'); // tongue
   } else if (e === 'cool') {
-    line(29, 32, 36, 32, INK);
-    setPx(36, 31, INK); setPx(37, 30, INK);
+    line(29, 38, 36, 38, INK);
+    setPx(36, 37, INK); setPx(37, 36, INK);
   } else if (e === 'sleepy') {
-    rect(30, 32, 5, 1, INK);
+    rect(30, 38, 5, 1, INK);
   } else if (e === 'excited') {
-    rect(28, 30, 9, 1, '#FFFFFF'); // teeth
-    rect(27, 31, 11, 1, INK);
-    rect(27, 32, 11, 2, INK);
-    rect(28, 34, 9, 1, INK);
-    rect(30, 33, 5, 2, '#F28BB4'); // tongue
+    rect(28, 36, 9, 1, '#FFFFFF'); // teeth
+    rect(27, 37, 11, 1, INK);
+    rect(27, 38, 11, 2, INK);
+    rect(28, 40, 9, 1, INK);
+    rect(30, 39, 5, 2, '#F28BB4'); // tongue
   }
 }
 
 function drawBlush(s) {
   if (s.expression !== 'happy' && s.expression !== 'excited') return;
-  rect(20, 28, 3, 2, BLUSH);
-  rect(41, 28, 3, 2, BLUSH);
+  rect(21, 33, 3, 2, BLUSH);
+  rect(40, 33, 3, 2, BLUSH);
 }
 
 /* ---------------- accessories ---------------- */
+/* All positioned for the portrait geometry: crown on top of the head,
+   headphones resting on the chest (as in the blue preview), beanie
+   over the top of the head, scarf wrapped at the shoulders. */
 function drawAccessory(s) {
   const a = s.accessory;
   if (a === 'crown') {
-    // bright spikes + darker band so the crown reads even on gold fur
-    rect(24, 7, 17, 3, '#F2A92E');
-    setPx(25, 6, '#FFE9A8'); setPx(25, 5, '#FFE9A8'); setPx(25, 4, '#FFE9A8');
-    setPx(32, 6, '#FFE9A8'); setPx(32, 5, '#FFE9A8'); setPx(32, 4, '#FFE9A8'); setPx(32, 3, '#FFE9A8');
-    setPx(39, 6, '#FFE9A8'); setPx(39, 5, '#FFE9A8'); setPx(39, 4, '#FFE9A8');
-    setPx(26, 6, '#FFE9A8'); setPx(31, 6, '#FFE9A8'); setPx(33, 6, '#FFE9A8'); setPx(38, 6, '#FFE9A8');
-    setPx(28, 8, '#E84A4A'); setPx(32, 8, '#E84A4A'); setPx(36, 8, '#E84A4A');
-    rect(24, 10, 17, 1, '#8A5A00'); // dark outline under the band
+    // bright spikes with a dark outline, sitting on top of the head
+    spike(26, 0, 4, 3, INK); spike(32, -1, 4, 3, INK); spike(38, 0, 4, 3, INK);
+    spike(26, 1, 4, 2, '#FFE9A8'); spike(32, 0, 4, 2, '#FFE9A8'); spike(38, 1, 4, 2, '#FFE9A8');
+    rect(24, 4, 17, 3, '#F2A92E');
+    setPx(28, 5, '#E84A4A'); setPx(32, 5, '#E84A4A'); setPx(36, 5, '#E84A4A');
+    rect(24, 7, 17, 1, '#8A5A00'); // dark outline under the band
   } else if (a === 'headphones') {
-    // band arc over the head
-    for (let deg = 200; deg <= 340; deg += 4) {
-      const rad = deg * Math.PI / 180;
-      setPx(Math.round(32 + Math.cos(rad) * 17), Math.round(24 + Math.sin(rad) * 16), '#232323');
-      setPx(Math.round(32 + Math.cos(rad) * 16), Math.round(24 + Math.sin(rad) * 15), '#232323');
-    }
-    // ear cups
-    rect(12, 20, 5, 9, '#232323');
-    rect(47, 20, 5, 9, '#232323');
-    setPx(14, 24, '#7FE3FF'); setPx(14, 25, '#7FE3FF');
-    setPx(49, 24, '#7FE3FF'); setPx(49, 25, '#7FE3FF');
+    // cups resting on the chest, band hidden behind the beard
+    rect(17, 52, 6, 9, '#232323');
+    rect(41, 52, 6, 9, '#232323');
+    rect(18, 54, 4, 5, '#3A3A3A');
+    rect(42, 54, 4, 5, '#3A3A3A');
+    setPx(19, 56, '#7FE3FF'); setPx(20, 56, '#7FE3FF');
+    setPx(43, 56, '#7FE3FF'); setPx(44, 56, '#7FE3FF');
+    // short strap stubs disappearing behind the beard
+    setPx(19, 51, '#232323'); setPx(20, 50, '#232323');
+    setPx(44, 51, '#232323'); setPx(43, 50, '#232323');
   } else if (a === 'beanie') {
-    // cap over the top of the head
-    for (let y = 4; y <= 9; y++) {
-      const half = 10 + (y - 4);
+    // dark rim behind, red cap on top, covering the tuft
+    for (let y = 2; y <= 7; y++) {
+      const half = 11 + (y - 2);
+      for (let x = 32 - half; x <= 32 + half; x++) setPx(x, y, '#7A1F1F');
+    }
+    for (let y = 2; y <= 7; y++) {
+      const half = 10 + (y - 2);
       for (let x = 32 - half; x <= 32 + half; x++) setPx(x, y, '#E84A4A');
     }
-    rect(15, 10, 34, 3, '#B83232'); // brim
-    rect(15, 11, 34, 1, '#FFD76A'); // brim stripe
-    circle(32, 3, 3, '#FFFFFF'); // pompom
+    rect(14, 8, 36, 3, '#7A1F1F'); // brim rim
+    rect(15, 8, 34, 3, '#B83232'); // brim
+    rect(15, 9, 34, 1, '#FFD76A'); // brim stripe
+    circle(32, 1, 2, '#FFFFFF'); // pompom
   } else if (a === 'scarf') {
-    // wraps the neck break, tail hangs down the chest
-    rect(20, 37, 24, 4, '#2EC4B6');
-    rect(20, 39, 24, 1, '#1D8A80');
-    rect(40, 41, 6, 8, '#2EC4B6'); // hanging tail
-    rect(40, 47, 6, 1, '#1D8A80');
-    setPx(41, 49, '#2EC4B6'); setPx(43, 49, '#2EC4B6'); setPx(45, 49, '#2EC4B6');
+    // wraps the shoulders, tail hangs down the chest
+    rect(12, 52, 40, 4, '#2EC4B6');
+    rect(12, 54, 40, 1, '#1D8A80');
+    rect(40, 56, 6, 7, '#2EC4B6'); // hanging tail
+    rect(40, 62, 6, 1, '#1D8A80');
+    setPx(41, 63, '#2EC4B6'); setPx(43, 63, '#2EC4B6'); setPx(45, 63, '#2EC4B6');
   }
 }
 
 /* ---------------- render ---------------- */
 function render(s) {
   newGrid();
+  for (let y = 0; y < H; y++) painted[y].fill(false);
   const seed = seedFromTraits(s);
   drawBackground(s.background, seed);
+  bgSnap = grid.map(row => row.slice()); // snapshot for reference
+  trackPaint = true; // from here on, setPx records painted pixels
   drawYeti(s, seed);
   drawAccessory(s);
+  trackPaint = false;
   blitToCanvas();
 }
 
