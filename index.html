@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lofi PFP Generator — Build Your Own Pixel Yeti</title>
+<meta name="description" content="Build your own pixel art Lofi Yeti avatar. Free forever, no wallet, no sign-up, runs 100% in your browser.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="logo-mark" aria-hidden="true">❄</div>
+      <h1 class="title">LOFI PFP GENERATOR</h1>
+      <p class="subtitle">BUILD YOUR OWN PIXEL YETI · FREE FOREVER</p>
+    </header>
+
+    <main class="layout">
+      <section class="preview-panel">
+        <div class="canvas-wrap">
+          <canvas id="yetiCanvas" width="512" height="512" aria-label="Your pixel Yeti preview"></canvas>
+        </div>
+        <div class="actions">
+          <button id="randomizeBtn" class="btn btn-primary" type="button">🎲 RANDOMIZE</button>
+          <button id="downloadBtn" class="btn btn-accent" type="button">⬇ DOWNLOAD PNG</button>
+        </div>
+        <div class="traits" id="traitList" aria-label="Selected traits"></div>
+      </section>
+
+      <section class="controls" aria-label="Customization controls">
+        <div class="control-group">
+          <h2>FUR COLOR</h2>
+          <div class="options" id="furOptions"></div>
+        </div>
+        <div class="control-group">
+          <h2>EXPRESSION</h2>
+          <div class="options" id="expressionOptions"></div>
+        </div>
+        <div class="control-group">
+          <h2>EYES</h2>
+          <div class="options" id="eyesOptions"></div>
+        </div>
+        <div class="control-group">
+          <h2>ACCESSORY</h2>
+          <div class="options" id="accessoryOptions"></div>
+        </div>
+        <div class="control-group">
+          <h2>BACKGROUND</h2>
+          <div class="options" id="backgroundOptions"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>100% FREE · NO WALLET · NO SIGN-UP · RUNS 100% IN YOUR BROWSER</p>
+      <p class="credit">A community fan tool for Lofi the Yeti · Not affiliated with the Lofi Foundation</p>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

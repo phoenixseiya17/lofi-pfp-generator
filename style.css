@@ -1,0 +1,172 @@
+/* Lofi PFP Generator — pixel art UI, zero external resources */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d1030;
+  --bg-2: #171b45;
+  --panel: #1d2352;
+  --panel-border: #3a4180;
+  --ink: #f2f5ff;
+  --ink-dim: #9aa5d6;
+  --accent: #ffd76a;
+  --accent-2: #7fe3ff;
+  --rare: #4a90d9;
+  --epic: #b678f0;
+  --legendary: #f2a92e;
+  --common: #9aa5b1;
+}
+
+body {
+  background: var(--bg);
+  background-image:
+    linear-gradient(rgba(127, 227, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(127, 227, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  color: var(--ink);
+  font-family: "Courier New", Courier, monospace;
+  min-height: 100vh;
+}
+
+.page { max-width: 1100px; margin: 0 auto; padding: 28px 20px 40px; }
+
+.header { text-align: center; margin-bottom: 28px; }
+.logo-mark {
+  font-size: 40px; line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(127, 227, 255, 0.8));
+}
+.title {
+  font-size: clamp(26px, 5vw, 44px);
+  letter-spacing: 4px;
+  margin-top: 10px;
+  color: var(--accent);
+  text-shadow: 3px 3px 0 #7a4d00, 6px 6px 0 rgba(0, 0, 0, 0.45);
+}
+.subtitle {
+  margin-top: 10px;
+  color: var(--accent-2);
+  letter-spacing: 3px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 520px) 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.preview-panel {
+  background: var(--panel);
+  border: 3px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 18px;
+  position: sticky;
+  top: 16px;
+}
+.canvas-wrap {
+  background: #0a0d24;
+  border: 3px solid #0a0d24;
+  border-radius: 8px;
+  overflow: hidden;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.actions { display: flex; gap: 12px; margin-top: 16px; }
+.btn {
+  flex: 1;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 15px;
+  letter-spacing: 1px;
+  padding: 14px 10px;
+  border: 3px solid #000;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.5);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5); }
+.btn-primary { background: var(--accent-2); color: #08222e; }
+.btn-accent { background: var(--accent); color: #3a2a00; }
+
+.traits { margin-top: 16px; display: flex; flex-direction: column; gap: 6px; }
+.trait-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+.trait-row .trait-name { color: var(--ink-dim); }
+.trait-row .trait-value { font-weight: bold; }
+.badge {
+  font-size: 11px;
+  font-weight: bold;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #fff;
+  letter-spacing: 1px;
+}
+.badge.Common { background: var(--common); }
+.badge.Rare { background: var(--rare); }
+.badge.Epic { background: var(--epic); }
+.badge.Legendary { background: var(--legendary); color: #2b1c00; }
+
+.controls { display: flex; flex-direction: column; gap: 18px; }
+.control-group {
+  background: var(--panel);
+  border: 3px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.control-group h2 {
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--accent-2);
+  margin-bottom: 12px;
+}
+.options { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+.opt:hover { border-color: var(--accent-2); }
+.opt.active {
+  background: var(--accent);
+  color: #3a2a00;
+  border-color: #000;
+}
+.opt .swatch {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.footer { text-align: center; margin-top: 32px; color: var(--ink-dim); font-size: 12px; letter-spacing: 2px; line-height: 1.9; }
+.footer .credit { letter-spacing: 1px; opacity: 0.8; }
+
+@media (max-width: 820px) {
+  .layout { grid-template-columns: 1fr; }
+  .preview-panel { position: static; }
+}
