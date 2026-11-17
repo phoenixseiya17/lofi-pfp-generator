@@ -32,7 +32,6 @@ const GRAPHQL_URL = 'https://graphql.testnet.sui.io/graphql';
 const statusEl = $('nftStatus');
 const claimedEl = $('nftClaimed');
 const connectBtn = $('connectWalletBtn');
-const mintBtn = $('mintBtn');
 const noteEl = $('nftNote');
 
 let SuiGrpcClient = null;
@@ -75,6 +74,18 @@ function label(kind, value) {
   return (LABELS[kind] && LABELS[kind][value]) || value;
 }
 
+/* Single-button flow (user decision 17 Nov 2026): ONE button does
+   everything — CONNECT SUI WALLET when disconnected, then it turns
+   into MINT RANDOM YETI (FREE) once a wallet is connected. No
+   separate mint button; the button's click action follows its label. */
+function setActionBtn(label, enabled, accent) {
+  if (!connectBtn) return;
+  connectBtn.textContent = label;
+  connectBtn.disabled = !enabled;
+  connectBtn.classList.toggle('btn-accent', !!accent);
+  connectBtn.classList.toggle('btn-primary', !accent);
+}
+
 function render() {
   const idx = currentYetiIndex();
   const changed = idx !== currentIndex;
@@ -83,7 +94,7 @@ function render() {
   if (!collection) {
     setStatus('On-chain status unavailable.');
     if (claimedEl) { claimedEl.textContent = ''; claimedEl.className = 'nft-badge'; }
-    if (mintBtn) mintBtn.disabled = true;
+    setActionBtn(wallet ? 'MINT RANDOM YETI (FREE)' : 'CONNECT SUI WALLET', false, !!wallet);
     return;
   }
 
@@ -103,25 +114,19 @@ function render() {
     claimedEl.className = 'nft-badge';
   }
 
-  if (!mintBtn) return;
   if (minting) {
-    mintBtn.disabled = true;
-    mintBtn.textContent = 'MINTING…';
+    setActionBtn('MINTING…', false, true);
     return;
   }
   const ownMinted = walletAddress ? collection.minters.has(walletAddress.toLowerCase()) : false;
   if (!wallet) {
-    mintBtn.disabled = true;
-    mintBtn.textContent = 'CONNECT WALLET TO MINT';
+    setActionBtn('CONNECT SUI WALLET', true, false);
   } else if (ownMinted) {
-    mintBtn.disabled = true;
-    mintBtn.textContent = 'YOU ALREADY OWN A YETI';
+    setActionBtn('YOU ALREADY OWN A YETI', false, false);
   } else if (collection.totalMinted >= cfg.maxSupply) {
-    mintBtn.disabled = true;
-    mintBtn.textContent = 'SOLD OUT';
+    setActionBtn('SOLD OUT', false, false);
   } else {
-    mintBtn.disabled = false;
-    mintBtn.textContent = 'MINT RANDOM YETI (FREE)';
+    setActionBtn('MINT RANDOM YETI (FREE)', true, true);
   }
   if (changed && wallet && !ownMinted) {
     if (keepNote) { keepNote = false; } else { setNote(''); }
@@ -165,9 +170,7 @@ async function connectWallet() {
     const accounts = wallet.accounts || [];
     if (!accounts.length) throw new Error('wallet returned no accounts');
     walletAddress = accounts[0].address;
-    connectBtn.textContent = 'WALLET ' + shortAddr(walletAddress);
-    connectBtn.disabled = true;
-    setNote('Connected: ' + shortAddr(walletAddress) + '. You can mint one random Yeti, free (testnet gas only).');
+    setNote('Connected: ' + shortAddr(walletAddress) + '. Hit MINT RANDOM YETI (FREE) to draw your random Yeti — free (testnet gas only).');
     render();
   } catch (e) {
     setNote('Could not connect wallet: ' + (e && e.message ? e.message : e));
@@ -328,7 +331,6 @@ async function init() {
   if (!cfg || !cfg.packageId || !cfg.collectionId) {
     setStatus('NFT minting is not configured yet.');
     if (connectBtn) connectBtn.disabled = true;
-    if (mintBtn) mintBtn.disabled = true;
     return;
   }
   try {
@@ -341,7 +343,6 @@ async function init() {
   } catch (e) {
     setStatus('NFT minting unavailable (could not load Sui SDK).');
     if (connectBtn) connectBtn.disabled = true;
-    if (mintBtn) mintBtn.disabled = true;
     return;
   }
 
@@ -352,8 +353,11 @@ async function init() {
     return;
   }
 
-  if (connectBtn) connectBtn.addEventListener('click', connectWallet);
-  if (mintBtn) mintBtn.addEventListener('click', mintRandom);
+  /* One button, action follows its label: connect first, then mint. */
+  if (connectBtn) connectBtn.addEventListener('click', () => {
+    if (!wallet) connectWallet();
+    else mintRandom();
+  });
 
   setStatus('Checking on-chain status…');
   await refreshCollection();
