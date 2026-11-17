@@ -1,36 +1,48 @@
 # Lofi PFP Generator ❄️
 
-**Build your own pixel art Lofi Yeti avatar. Free forever, no wallet, no sign-up.**
+**Pick your own pixel art Lofi Yeti avatar. Free forever, no wallet, no sign-up.**
 
 An entry for the [CLAY Hackathon III](https://hackathon.lofitheyeti.com) by the Lofi Foundation (Sui Network).
 
-![Lofi PFP Generator](logo.svg)
+![Lofi PFP Generator](logo.png)
 
 ## What it does
 
-Pick a fur color, an expression, eyes, an accessory and a background — the Yeti is drawn live, pixel by pixel, on a canvas. Hit **RANDOMIZE** for a surprise Yeti, then **DOWNLOAD PNG** to save a square, PFP-ready 512×512 avatar.
+Pick a fur color, an accessory and a background — the generator shows the
+closest Yeti from a set of **150 hand-checked pixel portraits** of Lofi the
+Yeti. Hit **RANDOMIZE** for a surprise Yeti, then **DOWNLOAD PNG** to save a
+square, PFP-ready avatar.
 
-Every Yeti shows its trait list with a rarity label, just like a real NFT collection:
+Every Yeti shows its trait list with a rarity label, just like a real NFT
+collection:
 
 | Trait | Options | Rarities |
 |---|---|---|
 | Fur | White, Blue, Mint, Pink, Purple, Gold | Common → Legendary |
-| Expression | Happy, Sleepy, Cool, Excited | Common / Rare |
-| Eyes | Normal, Closed, Sunglasses, Star Eyes | Common → Epic |
-| Accessory | None, Scarf, Beanie, Headphones, Crown | Common → Epic |
+| Accessory | None, Beanie, Headphones, Sunglasses, Crown | Common → Legendary |
 | Background | Arctic Snow, Gradient Sky, Starry Night, Carnival, Neon City | Common / Rare |
+
+If the exact combination you picked is not in the set yet, the generator
+shows the closest match and says so — it never pretends a Yeti has traits
+it does not have.
 
 ## Examples
 
 | Classic | Blue + Headphones | Gold + Crown |
 |---|---|---|
-| ![Classic white Yeti](logo.svg) | ![Blue Yeti with headphones](yeti-blue.svg) | ![Gold Yeti with crown](yeti-gold.svg) |
+| White fur, sunglasses, arctic snow | Blue fur, headphones, carnival | Gold fur, crown, neon city |
 
 ## How it works
 
-The Yeti is a **hand-designed pixel sprite** on a 64×64 grid, traced from the reference pixel art of Lofi the Yeti: a round fluffy head, a big blue face, a white beard, wide fur shoulders and blue hands. Fur color is a palette swap on the same sprite; eyes, expressions and accessories are pixel overlays in the same style. No images are fetched or generated: every combination is computed live in your browser, so the same traits always produce the same Yeti.
+The Yetis are **real pixel-art portraits**, not drawn in code: 150 square
+1600×1600 images in `assets/`, all generated in the same style as the
+original preview portraits of Lofi (head-and-shoulders, big blue face,
+fluffy fur, bold outlines) and each one visually checked before it entered
+the set. Picking traits filters the set — exact match if it exists,
+otherwise the closest match, same fur first. See `assets/PROMPTS.md` for
+how every portrait was made.
 
-- **Zero dependencies, zero network requests.** Just static HTML, CSS and JavaScript.
+- **Zero dependencies, zero network requests, zero API key.** Just static HTML, CSS, JavaScript and local images.
 - **Works offline.** Open `index.html` in any modern browser, or serve the folder with any static server:
   ```bash
   python3 -m http.server
@@ -38,20 +50,29 @@ The Yeti is a **hand-designed pixel sprite** on a 64×64 grid, traced from the r
   ```
 - **Private by design.** Nothing you make ever leaves your device.
 
+> **Note on the portrait files:** the 150 PNGs in `assets/` (246 MB) are not
+> committed to this repo — the push flow used here only accepts text files,
+> so binary images cannot be committed that way. The repo contains the full
+> code plus `assets/PROMPTS.md`, so the set can be regenerated exactly.
+> To run the app with the portraits, download the asset pack linked from
+> the demo video description, or generate your own set with the prompts.
+
 ## Project structure
 
 ```
 index.html   — page layout, controls, trait list
 style.css    — pixel-art UI styling (no external fonts or assets)
-app.js       — the pixel Yeti renderer + UI logic
-logo.svg     — project logo as SVG (same classic Yeti render)
-logo.png     — 512×512 PNG version of the logo (for the hackathon form)
-yeti-blue.svg / yeti-gold.svg — example renders
+app.js       — the portrait library, trait filter, UI logic
+assets/      — 150 Yeti portraits (PNG) + PROMPTS.md + README.md
+logo.png     — 512×512 PNG version of the classic Yeti (for the hackathon form)
 ```
 
 ## Why a PFP generator?
 
-Lofi the Yeti is a community mascot, and every community runs on profile pictures. This tool lets anyone make their own unique pixel Yeti in seconds — no design skills, no minting, no fees. If the Lofi team ever wants to turn the Yetis into a real collection, the trait and rarity system is already there.
+Lofi the Yeti is a community mascot, and every community runs on profile
+pictures. This tool lets anyone make their own unique pixel Yeti in seconds
+— no design skills, no minting, no fees. If the Lofi team ever wants to turn
+the Yetis into a real collection, the trait and rarity system is already there.
 
 ## License
 
