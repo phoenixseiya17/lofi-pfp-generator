@@ -1,6 +1,11 @@
 # Lofi PFP Generator ❄️
 
-**Draw a random pixel art Lofi Yeti. Free forever, no wallet, no sign-up — only minters own their Yeti.**
+**Draw a random pixel art Lofi Yeti. Free forever, no sign-up — only minters own their Yeti.**
+
+🎬 **[Watch the demo video (4:20)](https://youtu.be/ZOI9udddGok)** — a full walkthrough, including a live
+free NFT mint on Sui testnet.
+
+🌐 **Live demo: [phoenixseiya17.github.io/lofi-pfp-generator](https://phoenixseiya17.github.io/lofi-pfp-generator/)**
 
 An entry for the [CLAY Hackathon III](https://hackathon.lofitheyeti.com) by the Lofi Foundation (Sui Network).
 
@@ -27,37 +32,50 @@ collection:
 |---|---|---|
 | White fur, sunglasses, arctic snow | Blue fur, headphones, carnival | Gold fur, crown, neon city |
 
+## Own it as an NFT (Sui testnet)
+
+The Yetis are real NFTs on Sui testnet — 150 total, one per wallet, free
+(gas only). Minting is random: the chain draws one of the still-unclaimed
+Yetis with Sui on-chain randomness, so nobody can pick, predict, or snipe
+a specific one.
+
+- **Package:** [`0xc56541c03a04b74a4e0450536b94a369acc6f489bd2861a997d7a96c8f5e7b70`](https://suiscan.xyz/testnet/object/0xc56541c03a04b74a4e0450536b94a369acc6f489bd2861a997d7a96c8f5e7b70)
+- **Collection:** [`0x2c15cb5b07d7c089db410fa10871c6e6981be92388ac0b41825c48b562ed712d`](https://suiscan.xyz/testnet/object/0x2c15cb5b07d7c089db410fa10871c6e6981be92388ac0b41825c48b562ed712d)
+- **Contract source:** [`move/`](move/) — the exact code that was deployed,
+  with `Move.toml` and tests. Building it from `move/` reproduces the
+  deployed bytecode (verified: byte-identical to the on-chain module).
+- **How to mint:** open the live demo, click **CONNECT SUI WALLET**, then
+  **MINT RANDOM YETI (FREE)**. Your Yeti's traits, rarity and PNG download
+  appear in the success note.
+
 ## How it works
 
 The Yetis are **real pixel-art portraits**, not drawn in code: 150 square
 1600×1600 images in `assets/`, all generated in the same style as the
 original preview portraits of Lofi (head-and-shoulders, big blue face,
 fluffy fur, bold outlines) and each one visually checked before it entered
-the set. Picking traits filters the set — exact match if it exists,
-otherwise the closest match, same fur first. See `assets/PROMPTS.md` for
-how every portrait was made.
+the set. See `assets/PROMPTS.md` for how every portrait was made.
 
-- **Zero dependencies, zero network requests, zero API key.** Just static HTML, CSS, JavaScript and local images.
+- **Zero dependencies, zero network requests, zero API key** for the
+  preview. Just static HTML, CSS, JavaScript and local images. (Minting
+  talks to Sui testnet through the wallet you connect.)
 - **Works offline.** Open `index.html` in any modern browser, or serve the folder with any static server:
   ```bash
   python3 -m http.server
   # then open http://localhost:8000
   ```
-- **Private by design.** Nothing you make ever leaves your device.
-
-> **Note on the portrait files:** the 150 PNGs in `assets/` (246 MB) are not
-> committed to this repo — the push flow used here only accepts text files,
-> so binary images cannot be committed that way. The repo contains the full
-> code plus `assets/PROMPTS.md`, so the set can be regenerated exactly.
-> To run the app with the portraits, download the asset pack linked from
-> the demo video description, or generate your own set with the prompts.
+- **Private by design.** Nothing you make ever leaves your device, unless
+  you choose to mint.
 
 ## Project structure
 
 ```
 index.html   — page layout, controls, trait list
 style.css    — pixel-art UI styling (no external fonts or assets)
-app.js       — the portrait library, trait filter, UI logic
+app.js       — the portrait library, random draw, UI logic
+sui-config.js — deployed package + collection IDs (Sui testnet)
+sui-mint.js  — wallet connect + random mint flow
+move/        — the NFT smart contract (sources, tests, Move.toml)
 assets/      — 150 Yeti portraits (PNG) + PROMPTS.md + README.md
 logo.png     — 512×512 PNG version of the classic Yeti (for the hackathon form)
 ```
@@ -65,9 +83,9 @@ logo.png     — 512×512 PNG version of the classic Yeti (for the hackathon for
 ## Why a PFP generator?
 
 Lofi the Yeti is a community mascot, and every community runs on profile
-pictures. This tool lets anyone make their own unique pixel Yeti in seconds
-— no design skills, no minting, no fees. If the Lofi team ever wants to turn
-the Yetis into a real collection, the trait and rarity system is already there.
+pictures. This tool lets anyone draw their own unique pixel Yeti in seconds
+— no design skills, no fees. And if you want to truly own the one you drew,
+the random mint on Sui testnet makes it yours, one of only 150.
 
 ## License
 

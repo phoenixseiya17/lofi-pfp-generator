@@ -1,0 +1,22 @@
+# Lofi Yeti NFT contract (Sui testnet) — the exact source of the deployed package.
+#
+# Deployed package: 0xc56541c03a04b74a4e0450536b94a369acc6f489bd2861a997d7a96c8f5e7b70
+# Collection (shared object): 0x2c15cb5b07d7c089db410fa10871c6e6981be92388ac0b41825c48b562ed712d
+# Deploy tx: https://suiscan.xyz/testnet/tx/BtDHTuwJxfnjumtPiVBbUvwAMjXVjUFYCtQp2SgH6ZXZ
+#
+# The module source (sources/lofi_yeti.move) and the tests
+# (tests/lofi_yeti_tests.move) are byte-identical to the files that were
+# deployed. Only the Sui framework dependency below differs from the
+# original build file: the deploy used a local checkout of the Sui
+# framework, while this copy uses the public tag testnet-v1.84.0, which
+# points at the exact same commit (9dc25070cf2ed18bcda1ebb095f39708638195a8),
+# so building this package reproduces the deployed bytecode.
+[package]
+name = "lofi_yeti"
+edition = "2024.beta"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet-v1.84.0" }
+
+[addresses]
+lofi_yeti = "0x0"
