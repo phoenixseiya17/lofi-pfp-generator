@@ -1,10 +1,12 @@
-/* Lofi PFP Generator v5 — image-based.
-   The Yeti is NOT drawn in code anymore. The generator shows one of 150
-   hand-checked AI-generated pixel portraits (assets/), all in the same
-   style as the original previews: square head-and-shoulders pixel art,
-   big blue face, fluffy fur, bold outlines.
-   Picking traits FILTERS the library: exact match if it exists, otherwise
-   the closest match (same fur first, then accessory, then background).
+/* Lofi PFP Generator v6 — image-based, RANDOM ONLY (user decision
+   17 Nov 2026: everything random, only minters own a Yeti).
+   The generator shows one of 150 hand-checked AI-generated pixel
+   portraits (assets/), all in the same style as the original previews:
+   square head-and-shoulders pixel art, big blue face, fluffy fur,
+   bold outlines. There are NO trait pickers: the only way to see a
+   Yeti is RANDOMIZE, and the only way to own one is to mint it
+   (random draw on Sui testnet, see sui-mint.js). The trait list and
+   rarity badge just describe the Yeti currently shown.
    Zero network, zero dependencies, zero API key. */
 'use strict';
 
@@ -262,37 +264,12 @@ function render() {
       ' yeti in this set for ' + FUR[state.fur].label + ' fur yet.';
     matchNote.style.display = 'block';
   }
-  syncButtons();
-}
-
-function syncButtons() {
-  document.querySelectorAll('.opt').forEach(b => {
-    b.classList.toggle('active', state[b.dataset.group] === b.dataset.value);
-  });
 }
 
 /* ---------------- UI ---------------- */
-function buildOptions(containerId, config, key) {
-  const box = document.getElementById(containerId);
-  box.innerHTML = '';
-  for (const [value, def] of Object.entries(config)) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'opt' + (state[key] === value ? ' active' : '');
-    btn.dataset.value = value;
-    btn.dataset.group = key;
-    btn.innerHTML = (def.swatch ? '<span class="swatch" style="background:' + def.swatch + '"></span>' : '') + def.label;
-    btn.addEventListener('click', () => {
-      state[key] = value;
-      render();
-    });
-    box.appendChild(btn);
-  }
-}
-
+/* The ONLY way to browse: draw a random portrait from the whole
+   library. No picking, no filtering — every Yeti is a surprise. */
 function randomize() {
-  // Surprise me: a random portrait from the whole library, and the
-  // filter buttons follow it so you can see what you got.
   const next = LIBRARY[Math.floor(Math.random() * LIBRARY.length)];
   state.fur = next.fur;
   state.accessory = next.accessory;
@@ -300,21 +277,18 @@ function randomize() {
   render();
 }
 
-function downloadPNG() {
-  const a = document.createElement('a');
-  a.href = current.file;
-  a.download = 'lofi-yeti-pfp.png';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+/* Show one specific library item (by index). Used by sui-mint.js to
+   display the Yeti the chain just drew for the minter. */
+function showIndex(idx) {
+  const item = LIBRARY[Number(idx)];
+  if (!item) return;
+  state.fur = item.fur;
+  state.accessory = item.accessory;
+  state.background = item.background;
+  render();
 }
 
 document.getElementById('randomizeBtn').addEventListener('click', randomize);
-document.getElementById('downloadBtn').addEventListener('click', downloadPNG);
-
-buildOptions('furOptions', FUR, 'fur');
-buildOptions('accessoryOptions', ACCESSORIES, 'accessory');
-buildOptions('backgroundOptions', BACKGROUNDS, 'background');
 render();
 
 /* Preload the rest of the library in the background so switching is instant. */
@@ -334,4 +308,5 @@ window.__yeti = {
   pickFor,
   rarityOf,
   randomize,
+  showIndex,
 };

@@ -1,6 +1,6 @@
 # Lofi PFP Generator ❄️
 
-**Pick your own pixel art Lofi Yeti avatar. Free forever, no wallet, no sign-up.**
+**Draw a random pixel art Lofi Yeti. Free forever, no wallet, no sign-up — only minters own their Yeti.**
 
 An entry for the [CLAY Hackathon III](https://hackathon.lofitheyeti.com) by the Lofi Foundation (Sui Network).
 
@@ -8,10 +8,9 @@ An entry for the [CLAY Hackathon III](https://hackathon.lofitheyeti.com) by the 
 
 ## What it does
 
-Pick a fur color, an accessory and a background — the generator shows the
-closest Yeti from a set of **150 hand-checked pixel portraits** of Lofi the
-Yeti. Hit **RANDOMIZE** for a surprise Yeti, then **DOWNLOAD PNG** to save a
-square, PFP-ready avatar.
+Hit **RANDOMIZE** to draw a surprise Yeti from a set of **150 hand-checked pixel portraits** of Lofi the
+Yeti. There is nothing to pick — every draw is random. Preview is free; to own a Yeti, mint it as an NFT
+on Sui testnet (random draw, one per wallet, free). The minter gets a download link for their Yeti's PNG.
 
 Every Yeti shows its trait list with a rarity label, just like a real NFT
 collection:
@@ -21,10 +20,6 @@ collection:
 | Fur | White, Blue, Mint, Pink, Purple, Gold | Common → Legendary |
 | Accessory | None, Beanie, Headphones, Sunglasses, Crown | Common → Legendary |
 | Background | Arctic Snow, Gradient Sky, Starry Night, Carnival, Neon City | Common / Rare |
-
-If the exact combination you picked is not in the set yet, the generator
-shows the closest match and says so — it never pretends a Yeti has traits
-it does not have.
 
 ## Examples
 

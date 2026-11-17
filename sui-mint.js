@@ -8,6 +8,9 @@
    - Reads the shared Collection object to show how many Yetis are
      minted and whether the currently shown Yeti is already claimed.
    - Connects a Sui wallet via the Wallet Standard (Slush / Sui Wallet).
+   - The generator itself is RANDOM-ONLY (no trait pickers, user
+     decision 17 Nov 2026): preview is free, only minters own a Yeti,
+     and the minter's PNG download lives in the post-mint note.
    - The generator itself keeps working with zero network if this
      module fails to load (e.g. CDN offline): the NFT section just
      shows "unavailable" and filter/randomize/download are untouched.
@@ -217,18 +220,16 @@ async function findMintedYetiId(res, digest) {
 
 /* Show the minted Yeti in the generator preview (image + traits),
    so the minter immediately sees which one the chain drew. Drives
-   the generator to it through its own filter buttons, so its
-   internal `current` (used by DOWNLOAD) matches the preview; the
-   direct DOM update underneath is a safety net if a button is ever
-   missing. */
+   the generator to it through showIndex() (random-only UI: no picker
+   buttons anymore); the direct DOM update underneath is a safety net
+   if showIndex is ever missing. */
 function showMintedYeti(yeti) {
   try {
     const idx = Number(yeti.index);
     const item = window.__yeti && window.__yeti.library && window.__yeti.library[idx];
     if (!item) return;
-    for (const [group, value] of [['fur', item.fur], ['accessory', item.accessory], ['background', item.background]]) {
-      const btn = document.querySelector('.opt[data-group="' + group + '"][data-value="' + value + '"]');
-      if (btn) btn.click();
+    if (window.__yeti && typeof window.__yeti.showIndex === 'function') {
+      window.__yeti.showIndex(idx);
     }
     const img = document.getElementById('yetiImg');
     if (img) {
@@ -291,11 +292,18 @@ async function mintRandom() {
     if (revealed) {
       const n = String(Number(revealed.index) + 1).padStart(3, '0');
       showMintedYeti(revealed);
+      /* Only the minter gets the PNG: a download link for THEIR Yeti
+         (random-only UI has no download button anymore). */
+      const lib = window.__yeti && window.__yeti.library;
+      const mintedItem = lib && lib[Number(revealed.index)];
+      const dl = mintedItem
+        ? '<a href="' + mintedItem.file + '" download="lofi-yeti-' + n + '.png">Download your Yeti PNG</a> · '
+        : '';
       setNote(
         'You minted <b>Lofi Yeti #' + n + '</b> — ' +
         label('fur', revealed.fur) + ' fur, ' + label('accessory', revealed.accessory) +
         ', ' + label('background', revealed.background) + ', <b>' +
-        String(revealed.rarity).toUpperCase() + '</b>! ' +
+        String(revealed.rarity).toUpperCase() + '</b>! ' + dl +
         (digest ? '<a href="https://suiscan.xyz/testnet/tx/' + digest +
           '" target="_blank" rel="noopener">View on SuiScan</a>' : ''),
       );

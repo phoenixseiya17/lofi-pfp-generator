@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lofi PFP Generator — Build Your Own Pixel Yeti</title>
-<meta name="description" content="Pick your pixel art Lofi Yeti avatar from a curated set of 150 hand-checked portraits. Free forever, no wallet, no sign-up, runs 100% in your browser.">
+<title>Lofi PFP Generator — Draw a Random Pixel Yeti</title>
+<meta name="description" content="Draw a random pixel art Lofi Yeti from a curated set of 150 hand-checked portraits. Only minters own their Yeti — mint yours free on Sui testnet. Runs 100% in your browser.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>❄️</text></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +13,7 @@
     <header class="header">
       <div class="logo-mark" aria-hidden="true">❄</div>
       <h1 class="title">LOFI PFP GENERATOR</h1>
-      <p class="subtitle">BUILD YOUR OWN PIXEL YETI · FREE FOREVER</p>
+      <p class="subtitle">DRAW A RANDOM PIXEL YETI · FREE FOREVER</p>
     </header>
 
     <main class="layout">
@@ -23,25 +23,12 @@
         </div>
         <div class="actions">
           <button id="randomizeBtn" class="btn btn-primary" type="button">🎲 RANDOMIZE</button>
-          <button id="downloadBtn" class="btn btn-accent" type="button">⬇ DOWNLOAD PNG</button>
         </div>
         <div class="traits" id="traitList" aria-label="Selected traits"></div>
         <div class="match-note" id="matchNote" style="display:none"></div>
       </section>
 
-      <section class="controls" aria-label="Customization controls">
-        <div class="control-group">
-          <h2>FUR COLOR</h2>
-          <div class="options" id="furOptions"></div>
-        </div>
-        <div class="control-group">
-          <h2>ACCESSORY</h2>
-          <div class="options" id="accessoryOptions"></div>
-        </div>
-        <div class="control-group">
-          <h2>BACKGROUND</h2>
-          <div class="options" id="backgroundOptions"></div>
-        </div>
+      <section class="controls" aria-label="Mint as NFT">
         <div class="control-group nft-group">
           <h2>MINT AS NFT <span class="nft-tag">SUI TESTNET · FREE</span></h2>
           <div class="nft-status" id="nftStatus">Checking on-chain status…</div>
@@ -51,12 +38,12 @@
           </div>
           <p class="nft-note" id="nftNote">Minting is random — the chain draws one of the remaining unclaimed Yetis for you, so nobody can choose or snipe a specific one. Each wallet can mint only one Yeti. Mint is free, testnet gas only.</p>
         </div>
-        <p class="hint">Pick a fur color, an accessory and a background — the generator shows the exact Yeti from the set of 150 hand-checked pixel portraits. Hit RANDOMIZE for a surprise Yeti, then DOWNLOAD PNG to save it.</p>
+        <p class="hint">Hit RANDOMIZE to draw a surprise Yeti from the set of 150 hand-checked pixel portraits. Preview is free — to own a Yeti, connect a Slush wallet and mint yours. The chain draws a random one for you, one per wallet, free on Sui testnet.</p>
       </section>
     </main>
 
     <footer class="footer">
-      <p>GENERATOR 100% FREE · NO SIGN-UP · RUNS 100% IN YOUR BROWSER</p>
+      <p>PREVIEW 100% FREE · NO SIGN-UP · RUNS 100% IN YOUR BROWSER</p>
       <p class="credit">A community fan tool for Lofi the Yeti · Not affiliated with the Lofi Foundation · NFT minting (optional) runs on Sui testnet</p>
     </footer>
   </div>
